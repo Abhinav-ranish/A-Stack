@@ -1060,6 +1060,7 @@ function doctor() {
     "commands/ship.md",
     "commands/debug.md",
     "commands/gates.md",
+    "commands/verify.md",
     "commands/dashboard.md",
     "agents/planner.md",
     "agents/executor.md",
@@ -1198,6 +1199,65 @@ function demo() {
   process.exit(0);
 }
 
+// The deterministic control half of the gate -> fix -> re-run loop. Runs the
+// real gate suite, and on failure emits a MACHINE-READABLE remediation plan
+// (which gate, what to do) plus a bounded iteration counter in
+// .planning/VERIFY.md, so an agent/workflow can loop until green without ever
+// loosening a gate to pass. Exit 0 = ship-ready; exit 1 = work remaining.
+const VERIFY_REMEDIES = {
+  "security-scan": "Fix the critical findings in .planning/GATES.md (file:line). Never allowlist or delete the check to pass.",
+  "dependency-audit": "Resolve the high/critical advisories (upgrade, replace, or patch the dependency).",
+  "script:test": "A test is failing — read the output tail in .planning/GATES.md, then fix the code, not the test.",
+  "script:build": "The build is broken — fix the compile/build error in the offending file.",
+  "script:lint": "Lint is failing — fix the violations (do not blanket-disable the rule).",
+  "browser-qa": "Browser QA failed — open the dev server, reproduce, and fix the broken flow.",
+  "seo-audit": "SEO audit failed — fix missing metadata/canonical/sitemap on the public pages.",
+};
+
+function verify() {
+  const targetRoot = flag("target", root());
+  const maxIters = Number(flag("max-iters", "5")) || 5;
+  const passthrough = args.slice(1); // forward --target/--ui/--public/--skip-* to gates
+  const res = spawnSync("node", [join(scriptsDir, "a-stack.mjs"), "gates", ...passthrough], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+  });
+  let gatesData = null;
+  try {
+    gatesData = JSON.parse(res.stdout);
+  } catch {
+    gatesData = null;
+  }
+  const statuses = gatesData?.statuses || [];
+  const failures = statuses.filter((item) => String(item.status).toLowerCase().includes("fail"));
+  const pass = res.status === 0 && failures.length === 0;
+  const actions = failures.map((item) => ({
+    gate: item.gate,
+    status: item.status,
+    action: VERIFY_REMEDIES[item.gate] || `Resolve the ${item.gate} failure (see .planning/GATES.md).`,
+  }));
+
+  // Bounded, auditable iteration log lives in the project, not the install.
+  const verifyPath = join(targetRoot, ".planning", "VERIFY.md");
+  const prev = existsSync(verifyPath) ? readFileSync(verifyPath, "utf8") : "# Verify Loop\n\nAppend-only log of gate -> fix -> re-run iterations.\n";
+  const iteration = (prev.match(/^- iteration /gm) || []).length + 1;
+  const line = `- iteration ${iteration} · ${new Date().toISOString()} · ${pass ? "PASS" : "FAIL"}${
+    actions.length ? ` · ${actions.map((a) => a.gate).join(", ")}` : ""
+  }`;
+  write(verifyPath, `${prev.trimEnd()}\n${line}`);
+
+  const nextAction = pass
+    ? "All gates green. Ship-ready."
+    : iteration >= maxIters
+      ? `Iteration budget reached (${iteration}/${maxIters}) and gates still fail. STOP and escalate — do not weaken a gate to pass.`
+      : `Fix the ${actions.length} failing gate(s) above, then run verify again (iteration ${iteration}/${maxIters}).`;
+
+  console.log(
+    JSON.stringify({ pass, iteration, maxIters, target: targetRoot, failures: actions, report: ".planning/GATES.md", log: ".planning/VERIFY.md", nextAction }, null, 2),
+  );
+  process.exit(pass ? 0 : 1);
+}
+
 function help() {
   console.log(`A-Stack
 
@@ -1207,6 +1267,7 @@ Usage:
   node scripts/a-stack.mjs init-project --name "App" --idea "..." [--target <dir>]
   node scripts/a-stack.mjs migrate --target <existing-repo> [--force]
   node scripts/a-stack.mjs gates --target <repo> [--ui] [--public]
+  node scripts/a-stack.mjs verify --target <repo> [--max-iters 5] [gate flags]   # gate->fix->re-run loop
   node scripts/a-stack.mjs task add --target <repo> --title "..." [--agent claude-code|codex]
   node scripts/a-stack.mjs task next --target <repo>
   node scripts/a-stack.mjs event --target <repo> --type vulnerability-patched --title "..."
@@ -1240,6 +1301,7 @@ else if (command === "demo") demo();
 else if (command === "init-project") initProject();
 else if (command === "migrate") migrate();
 else if (command === "gates") gates();
+else if (command === "verify") verify();
 else if (command === "task") taskCommand();
 else if (command === "event") eventCommand();
 else if (command === "dashboard") dashboard();

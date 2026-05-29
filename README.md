@@ -71,7 +71,7 @@ plugin status line up automatically on the main thread, wire it explicitly in
 After install you get:
 
 - **Commands:** `/route` `/plan` `/execute` `/migrate` `/security-review`
-  `/ui-review` `/qa` `/qa-browser` `/seo` `/ship` `/debug` `/gates` `/dashboard`
+  `/ui-review` `/qa` `/qa-browser` `/seo` `/ship` `/debug` `/gates` `/verify` `/dashboard`
 - **Subagents:** `a-stack-planner` · `a-stack-executor` ·
   `a-stack-security-reviewer` · `a-stack-qa-tester` · `a-stack-ui-reviewer` ·
   `a-stack-release-manager`
@@ -158,6 +158,21 @@ writes the verdict to `.planning/GATES.md`:
 - **`browser-qa` · `seo-audit`** — required or not based on `--ui` / `--public`.
 
 Skip flags: `--skip-tests` `--skip-build` `--skip-lint` `--skip-audit`.
+
+## Verify loop (gate → fix → re-run)
+
+Gates tell you *whether* something's broken. `verify` drives it to *green*:
+
+```bash
+node scripts/a-stack.mjs verify --target <repo> [--ui] [--public] [--max-iters 5]
+```
+
+It runs the full gate suite and, on failure, returns a **machine-readable
+remediation plan** (`failures[].action`) plus a bounded, append-only iteration
+log in `.planning/VERIFY.md`. An agent (or `workflows/verify.md`) loops on it
+until `pass: true` — fixing the **source**, never loosening, allowlisting, or
+deleting a gate to force a pass. Exit `0` = ship-ready; exit `1` = work remains.
+A critical security finding is a hard stop regardless of budget.
 
 ## Memory
 

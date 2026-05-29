@@ -83,6 +83,10 @@
       "path": "commands/gates.md"
     },
     {
+      "name": "verify",
+      "path": "commands/verify.md"
+    },
+    {
       "name": "dashboard",
       "path": "commands/dashboard.md"
     }

@@ -232,3 +232,44 @@ test("a-stack demo runs the full offline proof end to end", () => {
   assert.match(out, /scanner exit code: 1/);
   assert.match(out, /critical "openai-key"/);
 });
+
+test("a-stack verify passes a clean target and logs the iteration", () => {
+  const dir = mkdtempSync(join(tmpdir(), "a-stack-verify-pass-"));
+  try {
+    writeFileSync(join(dir, "package.json"), JSON.stringify({ scripts: { test: "echo ok", build: "echo ok" } }));
+    const result = spawnSync(
+      "node",
+      ["scripts/a-stack.mjs", "verify", "--root", process.cwd(), "--target", dir, "--skip-audit"],
+      { cwd: process.cwd(), encoding: "utf8" },
+    );
+    assert.equal(result.status, 0);
+    const parsed = JSON.parse(result.stdout);
+    assert.equal(parsed.pass, true);
+    assert.equal(parsed.failures.length, 0);
+    assert.match(parsed.nextAction, /ship-ready/i);
+    assert.ok(existsSync(join(dir, ".planning", "VERIFY.md")));
+    assert.match(readFileSync(join(dir, ".planning", "VERIFY.md"), "utf8"), /iteration 1 .* PASS/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a-stack verify fails on a critical secret with a remediation action", () => {
+  const dir = mkdtempSync(join(tmpdir(), "a-stack-verify-fail-"));
+  try {
+    writeFileSync(join(dir, "route.ts"), "const key = 'sk-proj_12345678901234567890';\n");
+    const result = spawnSync(
+      "node",
+      ["scripts/a-stack.mjs", "verify", "--root", process.cwd(), "--target", dir, "--skip-audit"],
+      { cwd: process.cwd(), encoding: "utf8" },
+    );
+    assert.equal(result.status, 1);
+    const parsed = JSON.parse(result.stdout);
+    assert.equal(parsed.pass, false);
+    const secFailure = parsed.failures.find((f) => f.gate === "security-scan");
+    assert.ok(secFailure, "security-scan should be a failing gate");
+    assert.match(secFailure.action, /Never allowlist/i);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

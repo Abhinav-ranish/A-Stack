@@ -20,6 +20,14 @@ plugin manifest (`.claude-plugin/plugin.json`).
   (phase/cost/gates/agents), a tool-usage bar chart, a task kanban, memory and
   git panels, and a filterable events timeline. Graphite/amber theme.
 
+### Added (verify loop)
+- **`verify` command + `/verify` + `workflows/verify.md`** — the deterministic
+  closed loop on top of gates: run the suite, and on failure emit a
+  machine-readable remediation plan (`failures[].action`) plus a bounded,
+  auditable iteration log in `.planning/VERIFY.md`. An agent loops until
+  `pass: true`, fixing the source and never weakening a gate to pass. This turns
+  one-shot gates into a convergent verification step.
+
 ### Changed (memory + dashboard)
 - **Memory ranking upgraded from token-overlap to BM25** (term-frequency
   saturation, IDF, length normalization) — materially better recall while
