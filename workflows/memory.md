@@ -4,7 +4,7 @@ Use when remembering preferences, recalling stack choices, updating design taste
 
 ## Source Of Truth
 
-Markdown under `knowledge/` is canonical. The token-bag index at `knowledge/.a-stack-index.json` is a derived lexical index (token-set intersection), not a vector store — never read it directly; use it only as a pointer to the underlying markdown files. Rebuild after any memory write.
+Markdown under `knowledge/` is canonical. The BM25 lexical index at `knowledge/.a-stack-index.json` is a derived lexical index, not a vector store — never read it directly; use it only as a pointer to the underlying markdown files. Rebuild after any memory write.
 
 ## Write Rules
 

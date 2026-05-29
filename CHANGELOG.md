@@ -16,6 +16,17 @@ plugin manifest (`.claude-plugin/plugin.json`).
   the core claims. Scaffolds a throwaway project, routes plain-language
   requests, runs the real gates on clean code, then plants a leaked key and
   watches the scanner block it. Auto-cleans; touches nothing in your repo.
+- **Dashboard rebuilt as a command center** — sticky vitals rail, bento hero
+  (phase/cost/gates/agents), a tool-usage bar chart, a task kanban, memory and
+  git panels, and a filterable events timeline. Graphite/amber theme.
+
+### Changed (memory + dashboard)
+- **Memory ranking upgraded from token-overlap to BM25** (term-frequency
+  saturation, IDF, length normalization) — materially better recall while
+  staying a transparent, zero-dependency lexical index (still not a vector
+  store). Legacy indexes auto-upgrade on next search.
+- **Dashboard binds both loopback stacks** (`127.0.0.1` + `::1`) so
+  `http://localhost` loads on macOS, where `localhost` often resolves to IPv6.
 
 ### Fixed
 - **`init-project --target` is now honored.** It previously fell back to the

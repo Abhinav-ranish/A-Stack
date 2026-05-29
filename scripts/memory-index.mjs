@@ -18,6 +18,20 @@ function tokenize(text) {
   return [...new Set(text.toLowerCase().match(/[a-z0-9][a-z0-9-]{1,}/g) || [])];
 }
 
+// Term-frequency map (counts, not deduped) — the raw material for BM25 ranking.
+function termCounts(text) {
+  const counts = Object.create(null);
+  for (const token of text.toLowerCase().match(/[a-z0-9][a-z0-9-]{1,}/g) || []) {
+    counts[token] = (counts[token] || 0) + 1;
+  }
+  return counts;
+}
+
+// BM25 tuning. k1 controls term-frequency saturation; b controls length
+// normalization. Standard, conservative defaults.
+const BM25_K1 = 1.5;
+const BM25_B = 0.75;
+
 function buildSummary(content) {
   const lines = content.split(/\r?\n/);
   const heading = lines.find((line) => /^#\s+/.test(line))?.replace(/^#\s+/, "").trim() || "";
@@ -46,25 +60,39 @@ export function buildIndex(root) {
   const { knowledgeDir, indexPath } = paths(root);
   mkdirSync(dirname(indexPath), { recursive: true });
   const files = walk(knowledgeDir).filter((file) => basename(file) !== ".a-stack-index.json");
+  const df = Object.create(null); // document frequency per token
+  let totalLen = 0;
   const docs = files.map((file) => {
     const content = readFileSync(file, "utf8");
+    const title = content.match(/^#\s+(.+)$/m)?.[1] || basename(file);
+    const tags = [...content.matchAll(/^tags:\s*(.+)$/gim)].flatMap((match) =>
+      match[1]
+        .split(/[, ]+/)
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+    );
+    // Term frequencies over the body, with title (x2) and tags (x3) boosted so
+    // a hit in the heading or tags outranks a passing mention in the body.
+    const tf = termCounts(content);
+    for (const token of tokenize(title)) tf[token] = (tf[token] || 0) + 2;
+    for (const token of tokenize(tags.join(" "))) tf[token] = (tf[token] || 0) + 3;
+    const len = Object.values(tf).reduce((sum, n) => sum + n, 0);
+    totalLen += len;
+    for (const token of Object.keys(tf)) df[token] = (df[token] || 0) + 1;
     return {
       path: relative(root, file),
       hash: createHash("sha256").update(content).digest("hex"),
-      title: content.match(/^#\s+(.+)$/m)?.[1] || basename(file),
+      title,
       summary: buildSummary(content),
-      tags: [...content.matchAll(/^tags:\s*(.+)$/gim)].flatMap((match) =>
-        match[1]
-          .split(/[, ]+/)
-          .map((tag) => tag.trim())
-          .filter(Boolean),
-      ),
-      tokens: tokenize(content),
+      tags,
+      tf,
+      len,
       updatedAt: new Date().toISOString(),
     };
   });
-  writeFileSync(indexPath, `${JSON.stringify({ version: 2, kind: "token-bag", docs }, null, 2)}\n`);
-  return { indexed: docs.length, indexPath: relative(root, indexPath), kind: "token-bag" };
+  const index = { version: 3, kind: "bm25", n: docs.length, avgdl: docs.length ? totalLen / docs.length : 0, df, docs };
+  writeFileSync(indexPath, `${JSON.stringify(index, null, 2)}\n`);
+  return { indexed: docs.length, indexPath: relative(root, indexPath), kind: "bm25" };
 }
 
 // Pure, side-effect-light search usable both from the CLI and from hooks.
@@ -72,17 +100,27 @@ export function buildIndex(root) {
 export function searchMemory({ query, root, limit = 10 }) {
   const { indexPath } = paths(root);
   if (!existsSync(indexPath)) buildIndex(root);
-  const index = JSON.parse(readFileSync(indexPath, "utf8"));
+  let index = JSON.parse(readFileSync(indexPath, "utf8"));
+  // Upgrade legacy (token-bag) indexes in place so search always ranks with BM25.
+  if (index.kind !== "bm25" || !index.df) {
+    buildIndex(root);
+    index = JSON.parse(readFileSync(indexPath, "utf8"));
+  }
+  const { n, avgdl, df } = index;
   const queryTokens = tokenize(query);
   const results = index.docs
     .map((doc) => {
-      const haystack = new Set([
-        doc.title.toLowerCase(),
-        ...doc.tags.map((tag) => tag.toLowerCase()),
-        ...doc.tokens,
-      ]);
-      const score = queryTokens.reduce((sum, token) => sum + (haystack.has(token) ? 1 : 0), 0);
-      return { path: doc.path, title: doc.title, summary: doc.summary || "", score, tags: doc.tags };
+      let score = 0;
+      for (const token of queryTokens) {
+        const tf = doc.tf[token] || 0;
+        if (!tf) continue;
+        const docFreq = df[token] || 0;
+        // BM25 IDF (always positive via the +1 smoothing) and TF saturation.
+        const idf = Math.log(1 + (n - docFreq + 0.5) / (docFreq + 0.5));
+        const denom = tf + BM25_K1 * (1 - BM25_B + (BM25_B * doc.len) / (avgdl || 1));
+        score += idf * ((tf * (BM25_K1 + 1)) / denom);
+      }
+      return { path: doc.path, title: doc.title, summary: doc.summary || "", score: Number(score.toFixed(4)), tags: doc.tags };
     })
     .filter((doc) => doc.score > 0)
     .sort((a, b) => b.score - a.score || a.path.localeCompare(b.path))

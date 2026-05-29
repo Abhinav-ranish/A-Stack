@@ -136,7 +136,7 @@ work, refuse the parts that don't, and never oversell.**
 | | A-Stack |
 |---|---|
 | **Gates that actually run** | `gates` executes your test/build/lint, runs a real secret scanner and `npm audit`, and **fails on real failures** — not just on a missing script. Critical security findings are a hard stop. |
-| **Honest memory** | A transparent **lexical token-bag** index over your markdown. It's recall, not a vector store — and it says so. No hidden embeddings, no "neural" theater. |
+| **Honest memory** | A transparent **BM25 lexical** index over your markdown. It's recall, not a vector store — and it says so. No hidden embeddings, no "neural" theater. |
 | **Survives `/compact`** | Session breadcrumbs are snapshotted before compaction and re-injected on the next turn, so "where was I" survives compaction and resume. |
 | **No lock-in, no deps** | Plain markdown + Node. Zero runtime dependencies. Read every file, delete the plugin, keep your `.planning/` and `knowledge/`. |
 | **One natural-language door** | The router picks the workflow. You don't memorize 13 slash commands — though they're all there when you want them. |
@@ -162,7 +162,7 @@ Skip flags: `--skip-tests` `--skip-build` `--skip-lint` `--skip-audit`.
 ## Memory
 
 Plain markdown under `knowledge/` is the source of truth. `.a-stack-index.json`
-is a **derived token-bag lexical index** — not a vector store — rebuilt on demand:
+is a **derived BM25 lexical index** — not a vector store — rebuilt on demand:
 
 ```bash
 node scripts/memory-index.mjs index  --root /path/to/a-stack

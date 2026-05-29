@@ -11,7 +11,7 @@ A-Stack is a Claude Code-first autonomous stack for web-app work. It routes plai
 
 - Default mode is `full-yolo`: keep moving without asking unless a hard gate trips.
 - Hard gates: irreversible/destructive action, missing credentials, failed verification, unresolved critical security issue.
-- Markdown memory is source of truth. The token-bag index at `knowledge/.a-stack-index.json` is a derived lexical index, not a vector store — rebuild it whenever memory changes.
+- Markdown memory is source of truth. The BM25 lexical index at `knowledge/.a-stack-index.json` is a derived lexical index, not a vector store — rebuild it whenever memory changes.
 - Optimize for web apps: SaaS, dashboards, landing pages, AI apps, authenticated CRUD, SEO pages.
 
 ## Routing
@@ -117,7 +117,7 @@ node scripts/memory-index.mjs index
 ```
 
 Do not treat the index as canonical. The `UserPromptSubmit` hook auto-surfaces
-the top token-bag hits for each prompt, so relevant memory appears without an
+the top BM25 hits for each prompt, so relevant memory appears without an
 explicit recall call.
 
 ## Session Persistence
