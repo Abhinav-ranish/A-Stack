@@ -1,0 +1,199 @@
+{
+  "name": "a-stack",
+  "version": "0.7.0",
+  "description": "Claude Code-first autonomous web-app agent stack with natural-language routing, GSD-style planning, markdown memory, security gates, AI Council review, browser QA, and ship readiness.",
+  "author": {
+    "name": "Abhinav-ranish"
+  },
+  "homepage": "https://github.com/Abhinav-ranish/A-Stack",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Abhinav-ranish/A-Stack.git"
+  },
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "skills",
+    "web-apps",
+    "agent-stack",
+    "autonomous-development",
+    "security-review",
+    "qa",
+    "memory",
+    "migration"
+  ],
+  "category": "development",
+  "tags": [
+    "ai",
+    "agents",
+    "planning",
+    "security",
+    "frontend",
+    "qa",
+    "release",
+    "migration"
+  ],
+  "commands": [
+    {
+      "name": "route",
+      "path": "commands/route.md"
+    },
+    {
+      "name": "plan",
+      "path": "commands/plan.md"
+    },
+    {
+      "name": "execute",
+      "path": "commands/execute.md"
+    },
+    {
+      "name": "migrate",
+      "path": "commands/migrate.md"
+    },
+    {
+      "name": "security-review",
+      "path": "commands/security-review.md"
+    },
+    {
+      "name": "ui-review",
+      "path": "commands/ui-review.md"
+    },
+    {
+      "name": "qa",
+      "path": "commands/qa.md"
+    },
+    {
+      "name": "qa-browser",
+      "path": "commands/qa-browser.md"
+    },
+    {
+      "name": "seo",
+      "path": "commands/seo.md"
+    },
+    {
+      "name": "ship",
+      "path": "commands/ship.md"
+    },
+    {
+      "name": "debug",
+      "path": "commands/debug.md"
+    },
+    {
+      "name": "gates",
+      "path": "commands/gates.md"
+    },
+    {
+      "name": "dashboard",
+      "path": "commands/dashboard.md"
+    }
+  ],
+  "agents": [
+    {
+      "name": "a-stack-planner",
+      "path": "agents/planner.md"
+    },
+    {
+      "name": "a-stack-executor",
+      "path": "agents/executor.md"
+    },
+    {
+      "name": "a-stack-security-reviewer",
+      "path": "agents/security-reviewer.md"
+    },
+    {
+      "name": "a-stack-qa-tester",
+      "path": "agents/qa-tester.md"
+    },
+    {
+      "name": "a-stack-ui-reviewer",
+      "path": "agents/ui-reviewer.md"
+    },
+    {
+      "name": "a-stack-release-manager",
+      "path": "agents/release-manager.md"
+    }
+  ],
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/user-prompt-router.mjs\""
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/pretool-bash-guard.mjs\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/posttool-activity.mjs\""
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/session-hook.mjs\" start"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/session-hook.mjs\" precompact"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/session-hook.mjs\" agent-start"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/hooks/session-hook.mjs\" agent-stop"
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/statusline.mjs\""
+  },
+  "engines": {
+    "claudeCode": ">=2.0.0",
+    "node": ">=20.0.0"
+  }
+}

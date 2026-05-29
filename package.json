@@ -1,0 +1,27 @@
+{
+  "name": "a-stack",
+  "version": "0.7.0",
+  "private": true,
+  "description": "Claude Code-first autonomous web-app agent stack: natural-language routing, real quality gates, markdown memory, and ship readiness.",
+  "type": "module",
+  "bin": {
+    "a-stack": "scripts/a-stack.mjs"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "dashboard": "node scripts/a-stack.mjs dashboard",
+    "doctor": "node scripts/a-stack.mjs doctor",
+    "gates": "node scripts/a-stack.mjs gates",
+    "init-project": "node scripts/a-stack.mjs init-project",
+    "migrate": "node scripts/a-stack.mjs migrate",
+    "route": "node scripts/router.mjs",
+    "memory:index": "node scripts/memory-index.mjs index",
+    "memory:search": "node scripts/memory-index.mjs search",
+    "learning:status": "node scripts/learning.mjs status",
+    "learning:optimize": "node scripts/learning.mjs optimize",
+    "security:scan": "node scripts/security-scan.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

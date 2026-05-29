@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>A-Stack · Mission Control</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <img src="/assets/a-stack-mark.svg" alt="" width="34" height="34" />
+          <div>
+            <strong>A-Stack</strong>
+            <span>Mission Control</span>
+          </div>
+        </div>
+        <nav aria-label="Dashboard sections">
+          <a href="#overview"><span class="nav-ico">◉</span> Overview</a>
+          <a href="#roadmap"><span class="nav-ico">▤</span> Roadmap</a>
+          <a href="#tasks"><span class="nav-ico">☰</span> Tasks <span id="nav-task-count" class="nav-badge"></span></a>
+          <a href="#activity"><span class="nav-ico">⚡</span> Activity</a>
+          <a href="#quality"><span class="nav-ico">🛡</span> Quality</a>
+          <a href="#memory"><span class="nav-ico">🧠</span> Memory</a>
+          <a href="#git"><span class="nav-ico">⎇</span> Git <span id="nav-git-count" class="nav-badge"></span></a>
+          <a href="#events"><span class="nav-ico">◷</span> Events</a>
+          <a href="#graph"><span class="nav-ico">⬡</span> Graph</a>
+        </nav>
+        <div class="sidebar-foot">
+          <div class="live" id="live-indicator" title="Live polling every 3s">
+            <span class="live-dot"></span><span id="live-label">connecting…</span>
+          </div>
+          <p id="target-path" class="target-path"></p>
+        </div>
+      </aside>
+
+      <main>
+        <!-- Sticky command bar: identity + live vitals -->
+        <header class="cmdbar" id="overview">
+          <div class="cmdbar-id">
+            <h1 id="project-name">Loading…</h1>
+            <span id="project-status" class="pill">—</span>
+          </div>
+          <div class="vitals" aria-label="Live vitals">
+            <a class="vital" href="#roadmap" title="Phase progress">
+              <span class="vital-k">Phase</span>
+              <span class="vital-v" id="vital-phase">–</span>
+              <span class="vital-bar"><i id="vital-phase-fill"></i></span>
+            </a>
+            <a class="vital" href="#overview" title="Session cost">
+              <span class="vital-k">Cost</span>
+              <span class="vital-v" id="vital-cost">—</span>
+            </a>
+            <a class="vital" href="#activity" title="Active subagents">
+              <span class="vital-k">Agents</span>
+              <span class="vital-v" id="vital-agents">0</span>
+            </a>
+            <a class="vital" href="#quality" title="Gate verdict">
+              <span class="vital-k">Gates</span>
+              <span class="vital-v" id="vital-gates">—</span>
+            </a>
+            <a class="vital" href="#git" title="Git branch & uncommitted">
+              <span class="vital-k">Git</span>
+              <span class="vital-v" id="vital-git">—</span>
+            </a>
+            <a class="vital" href="#activity" title="Tool-use throughput">
+              <span class="vital-k">Tools</span>
+              <span class="vital-v" id="vital-tools">0</span>
+            </a>
+          </div>
+          <div class="cmdbar-end">
+            <span id="generated-at" class="updated">—</span>
+            <button id="refresh" class="icon-button" type="button" aria-label="Refresh now" title="Refresh now">↻</button>
+          </div>
+        </header>
+
+        <!-- Quick actions -->
+        <section class="actions-bar" aria-label="Quick actions">
+          <div class="actions">
+            <button type="button" class="primary" data-action="security">🛡 Security scan</button>
+            <button type="button" data-action="gates">✓ Run gates</button>
+            <button type="button" data-action="qa-browser">🌐 Browser QA</button>
+            <button type="button" data-action="reindex">🧠 Reindex memory</button>
+          </div>
+          <div id="action-result" class="action-result" role="status" aria-live="polite"></div>
+        </section>
+
+        <!-- Bento hero -->
+        <section class="bento">
+          <article class="card hero-phase">
+            <div class="card-head"><h2>Phase progress</h2><span id="phase-pct" class="badge">0%</span></div>
+            <strong id="phase-big" class="big">–</strong>
+            <p id="phase-stage" class="muted">Not planned</p>
+            <div class="seg" id="phase-seg" aria-hidden="true"></div>
+            <div class="next">
+              <span class="next-k">Next action</span>
+              <p id="next-action">Route the next task through A-Stack.</p>
+            </div>
+          </article>
+
+          <article class="card hero-cost">
+            <div class="card-head"><h2>Session cost</h2><span id="cost-source" class="badge subtle">—</span></div>
+            <strong id="cost-amount" class="big">—</strong>
+            <div class="kv-rows">
+              <div><span>Tokens</span><b id="cost-tokens">—</b></div>
+              <div><span>Model</span><b id="cost-model">—</b></div>
+              <div><span>Duration</span><b id="cost-duration">—</b></div>
+            </div>
+          </article>
+
+          <article class="card hero-gates">
+            <div class="card-head"><h2>Gates</h2><span id="gates-verdict" class="pill">none</span></div>
+            <div id="gates-mini" class="gates-mini"><div class="empty mini">No gate report yet.</div></div>
+          </article>
+
+          <article class="card hero-agents">
+            <div class="card-head"><h2>Agents &amp; throughput</h2><span id="agents-count" class="badge">0 live</span></div>
+            <div id="agent-list" class="agent-list"></div>
+            <div class="throughput" id="throughput">
+              <div><strong id="tp-total">0</strong><span>tool uses</span></div>
+              <div><strong id="tp-errors">0</strong><span>errors</span></div>
+              <div><strong id="tp-top">—</strong><span>top tool</span></div>
+            </div>
+          </article>
+        </section>
+
+        <!-- Roadmap -->
+        <section id="roadmap" class="panel-block">
+          <div class="section-title">
+            <h2>Roadmap</h2>
+            <p id="roadmap-summary">Not planned</p>
+          </div>
+          <div id="phase-track" class="phase-track" aria-live="polite"></div>
+        </section>
+
+        <!-- Tasks -->
+        <section id="tasks" class="panel-block split">
+          <div>
+            <div class="section-title">
+              <h2>Task queue</h2>
+              <p id="task-stats-text">0 total</p>
+            </div>
+            <div class="seg tasks-seg" id="task-seg" aria-hidden="true"></div>
+            <div id="task-board" class="task-board" aria-live="polite"></div>
+          </div>
+
+          <form id="task-form" class="form-panel">
+            <h3>Add task</h3>
+            <label>Title<input id="task-title" name="title" autocomplete="off" required /></label>
+            <label>Details<textarea id="task-details" name="details" rows="3"></textarea></label>
+            <div class="form-row">
+              <label>Agent
+                <select id="task-agent" name="agent">
+                  <option value="claude-code">Claude Code</option>
+                  <option value="codex">Codex</option>
+                  <option value="gemini">Gemini</option>
+                  <option value="manual">Manual</option>
+                </select>
+              </label>
+              <label>Priority
+                <select id="task-priority" name="priority">
+                  <option value="normal">Normal</option>
+                  <option value="high">High</option>
+                  <option value="low">Low</option>
+                </select>
+              </label>
+            </div>
+            <button type="submit">Add to queue</button>
+            <p id="form-status" role="status"></p>
+          </form>
+        </section>
+
+        <!-- Activity + Quality + Memory row -->
+        <div class="trio">
+          <section id="activity" class="panel-block">
+            <div class="section-title">
+              <h2>Tool activity</h2>
+              <p id="activity-summary">No activity captured</p>
+            </div>
+            <div id="toolchart" class="toolchart"></div>
+          </section>
+
+          <section id="quality" class="panel-block">
+            <div class="section-title"><h2>Quality ledger</h2><p>Outcomes, not prompts.</p></div>
+            <div class="stat-grid">
+              <div class="stat"><span>Vulns patched</span><strong id="vulns-patched">0</strong></div>
+              <div class="stat"><span>Slop removed</span><strong id="slop-removed">0</strong></div>
+              <div class="stat danger-stat"><span>Critical sec</span><strong id="critical-security">0</strong></div>
+              <div class="stat"><span>Findings</span><strong id="security-findings">0</strong></div>
+            </div>
+          </section>
+
+          <section id="memory" class="panel-block">
+            <div class="section-title"><h2>Memory &amp; learning</h2><p>Markdown source of truth.</p></div>
+            <div class="stat-grid">
+              <div class="stat"><span>Memory files</span><strong id="memory-files">0</strong></div>
+              <div class="stat"><span>Trajectories</span><strong id="trajectories">0</strong></div>
+              <div class="stat"><span>Patterns</span><strong id="patterns">0</strong></div>
+              <div class="stat ok-stat"><span>Promoted</span><strong id="promoted-patterns">0</strong></div>
+            </div>
+            <div id="memory-files-list" class="chip-row"></div>
+          </section>
+        </div>
+
+        <!-- Git -->
+        <section id="git" class="panel-block">
+          <div class="section-title">
+            <h2>Git activity</h2>
+            <p id="git-branch">—</p>
+          </div>
+          <div class="git-grid">
+            <div id="git-commits" class="commit-list"></div>
+            <div id="git-changed" class="changed-list"></div>
+          </div>
+        </section>
+
+        <!-- Events -->
+        <section id="events" class="panel-block">
+          <div class="section-title">
+            <h2>Events</h2>
+            <div id="event-filters" class="filters"></div>
+          </div>
+          <div id="event-list" class="event-list"></div>
+        </section>
+
+        <!-- Graph -->
+        <section id="graph" class="panel-block">
+          <div class="section-title">
+            <h2>Stack graph</h2>
+            <p>How router, planning, gates, memory, learning, and queued work connect.</p>
+          </div>
+          <div class="graph-wrap">
+            <svg id="stack-graph" viewBox="0 0 960 420" role="img" aria-label="A-Stack connection graph"></svg>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

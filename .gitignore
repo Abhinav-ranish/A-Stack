@@ -1,0 +1,15 @@
+# Vendored reference installs (kept local, not part of A-Stack)
+a-stackv.1/
+a-stackv.2/
+
+# Local test-project installs (own nested git repos)
+testing-folder/
+
+# Derived memory index — generated from knowledge/*.md, rebuilt on demand
+# (searchMemory auto-builds it if missing). Tracking it only causes churn
+# whenever any session reindexes.
+knowledge/.a-stack-index.json
+
+# OS / tooling
+.DS_Store
+node_modules/

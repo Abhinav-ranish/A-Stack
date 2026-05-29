@@ -1,0 +1,19 @@
+{
+  "name": "a-stack",
+  "owner": {
+    "name": "Abhinav-ranish",
+    "url": "https://github.com/Abhinav-ranish"
+  },
+  "metadata": {
+    "description": "A-Stack — a Claude Code-first autonomous web-app agent stack. Add this repo as a marketplace, then install the a-stack plugin.",
+    "version": "0.7.0"
+  },
+  "plugins": [
+    {
+      "name": "a-stack",
+      "source": "./",
+      "version": "0.7.0",
+      "description": "Natural-language routing, GSD-style planning, markdown memory, real security/QA/SEO gates, AI Council review, and ship readiness — packaged as one Claude Code plugin."
+    }
+  ]
+}
