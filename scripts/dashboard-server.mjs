@@ -106,7 +106,7 @@ function serveStatic(req, res) {
   send(res, 200, readFileSync(file), mime[extname(file)] || "application/octet-stream");
 }
 
-const server = createServer(async (req, res) => {
+const handler = async (req, res) => {
   try {
     const url = new URL(req.url, `http://localhost:${port}`);
     if (req.method === "GET" && url.pathname === "/api/state") {
@@ -148,9 +148,17 @@ const server = createServer(async (req, res) => {
   } catch (error) {
     send(res, 500, JSON.stringify({ error: error.message }, null, 2));
   }
-});
+};
 
+// Bind both loopback stacks so http://localhost works whether the OS resolves
+// it to IPv4 (127.0.0.1) or IPv6 (::1) — macOS commonly prefers ::1, which a
+// 127.0.0.1-only bind would refuse. Loopback only; never exposed to the network.
+const server = createServer(handler);
 server.listen(port, "127.0.0.1", () => {
-  console.log(`A-Stack dashboard: http://127.0.0.1:${port}`);
+  console.log(`A-Stack dashboard: http://localhost:${port}`);
   console.log(`Target: ${targetRoot}`);
 });
+
+const server6 = createServer(handler);
+server6.on("error", () => {}); // IPv6 loopback may be unavailable — ignore
+server6.listen(port, "::1");
